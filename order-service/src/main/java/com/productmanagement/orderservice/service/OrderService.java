@@ -5,9 +5,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.productmanagement.orderservice.controller.repository.OrderRepository;
 import com.productmanagement.orderservice.model.Order;
 import com.productmanagement.orderservice.model.OrderLineItem;
+import com.productmanagement.orderservice.repository.OrderRepository;
 
 import lombok.RequiredArgsConstructor;
 

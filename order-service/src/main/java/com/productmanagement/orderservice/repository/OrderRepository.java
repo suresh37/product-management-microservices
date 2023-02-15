@@ -1,4 +1,4 @@
-package com.productmanagement.orderservice.controller.repository;
+package com.productmanagement.orderservice.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

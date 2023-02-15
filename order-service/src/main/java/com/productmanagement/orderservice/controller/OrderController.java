@@ -13,26 +13,24 @@ import com.productmanagement.orderservice.service.OrderService;
 
 import lombok.RequiredArgsConstructor;
 
-
 @RestController
 @RequestMapping("/api/order")
 @RequiredArgsConstructor
 public class OrderController {
-	
+
 	private final OrderService orderService;
 
 	@GetMapping(value = "")
-	@ResponseStatus( value = HttpStatus.OK)
+	@ResponseStatus(value = HttpStatus.OK)
 	public String getOrders() {
-		return "";
+		return "Get Orders Response";
 	}
-	
+
 	@PostMapping(value = "")
-	@ResponseStatus( value = HttpStatus.CREATED)
+	@ResponseStatus(value = HttpStatus.CREATED)
 	public String placeOrder(@RequestBody Order order) {
 		orderService.placeOrder(order);
 		return "Order Placed Successfully";
 	}
 
-	
 }
