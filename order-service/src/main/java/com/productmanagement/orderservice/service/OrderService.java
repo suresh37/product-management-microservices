@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderService {
 
 	private final OrderRepository orderRepo;
-	private final WebClient webClient;
+	private final WebClient.Builder webClientBuilder;
 
 	public void placeOrder(Order order) {
 		try {
@@ -32,8 +32,8 @@ public class OrderService {
 			List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
 
 			// Check isInStock
-			InventoryDto[] inv = webClient.get()
-					.uri("http://localhost:8082/api/inventory/isinstock",
+			InventoryDto[] inv = webClientBuilder.build().get()
+					.uri("http://inventory-service/api/inventory/isinstock",
 							builder -> builder.queryParam("skuCode", skuCodeList).build())
 					.retrieve().bodyToMono(InventoryDto[].class).block();
 
