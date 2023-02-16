@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,26 +21,32 @@ import lombok.RequiredArgsConstructor;
 public class OrderService {
 
 	private final OrderRepository orderRepo;
-	@Autowired
-	WebClient webClient;
+	private final WebClient webClient;
 
 	public void placeOrder(Order order) {
-		order.setOrderNumber(UUID.randomUUID().toString());
-		List<OrderLineItem> list = order.getOrderLineItemList().stream().map(this::mapToOrderLineItems).toList();
-		order.setOrderLineItemList(list);
+		try {
+			order.setOrderNumber(UUID.randomUUID().toString());
+			List<OrderLineItem> list = order.getOrderLineItemList().stream().map(this::mapToOrderLineItems).toList();
+			order.setOrderLineItemList(list);
 
-		List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
+			List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
 
-		// Check isInStock
-		InventoryDto[] inv = webClient.get().uri(builder -> builder.path("http://localhost:8082/api/inventory")
-				.queryParam("skuCode", skuCodeList).build()).retrieve().bodyToMono(InventoryDto[].class).block();
+			// Check isInStock
+			InventoryDto[] inv = webClient.get()
+					.uri("http://localhost:8082/api/inventory/isinstock",
+							builder -> builder.queryParam("skuCode", skuCodeList).build())
+					.retrieve().bodyToMono(InventoryDto[].class).block();
 
-		boolean allInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
-				.allMatch(InventoryDto::getIsInStock);
-		if (allInStock)
-			orderRepo.save(order);
-		else {
-			throw new RuntimeException("Order Line Items not in Stock");
+			System.out.println("allInStock");
+			boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
+					.allMatch(InventoryDto::getIsInStock);
+			if (allProductsInStock)
+				orderRepo.save(order);
+			else {
+				throw new IllegalArgumentException("Order Line Items not in Stock");
+			}
+		} catch (Exception e) {
+			System.out.println("Exception while placing order: " + e.getMessage());
 		}
 	}
 
