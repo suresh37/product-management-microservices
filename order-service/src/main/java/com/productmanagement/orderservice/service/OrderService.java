@@ -23,31 +23,32 @@ public class OrderService {
 	private final OrderRepository orderRepo;
 	private final WebClient.Builder webClientBuilder;
 
-	public void placeOrder(Order order) {
-		try {
-			order.setOrderNumber(UUID.randomUUID().toString());
-			List<OrderLineItem> list = order.getOrderLineItemList().stream().map(this::mapToOrderLineItems).toList();
-			order.setOrderLineItemList(list);
+	public String placeOrder(Order order) {
+//		try {
+		order.setOrderNumber(UUID.randomUUID().toString());
+		List<OrderLineItem> list = order.getOrderLineItemList().stream().map(this::mapToOrderLineItems).toList();
+		order.setOrderLineItemList(list);
 
-			List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
+		List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
 
-			// Check isInStock
-			InventoryDto[] inv = webClientBuilder.build().get()
-					.uri("http://inventory-service/api/inventory/isinstock",
-							builder -> builder.queryParam("skuCode", skuCodeList).build())
-					.retrieve().bodyToMono(InventoryDto[].class).block();
+		// Check isInStock
+		InventoryDto[] inv = webClientBuilder.build().get()
+				.uri("http://inventory-service/api/inventory/isinstock",
+						builder -> builder.queryParam("skuCode", skuCodeList).build())
+				.retrieve().bodyToMono(InventoryDto[].class).block();
 
-			System.out.println("allInStock");
-			boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
-					.allMatch(InventoryDto::getIsInStock);
-			if (allProductsInStock)
-				orderRepo.save(order);
-			else {
-				throw new IllegalArgumentException("Order Line Items not in Stock");
-			}
-		} catch (Exception e) {
-			System.out.println("Exception while placing order: " + e.getMessage());
+		System.out.println("allInStock");
+		boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
+				.allMatch(InventoryDto::getIsInStock);
+		if (allProductsInStock) {
+			orderRepo.save(order);
+			return "Order Placed Successfully";
+		} else {
+			throw new IllegalArgumentException("Order Line Items not in Stock");
 		}
+//		} catch (Exception e) {
+//			System.out.println("Exception while placing order: " + e.getMessage());
+//		}
 	}
 
 	private OrderLineItem mapToOrderLineItems(OrderLineItem item) {
