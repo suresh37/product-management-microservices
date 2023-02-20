@@ -4,6 +4,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.cloud.sleuth.Span;
+import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.cloud.sleuth.Tracer.SpanInScope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +25,7 @@ public class OrderService {
 
 	private final OrderRepository orderRepo;
 	private final WebClient.Builder webClientBuilder;
+	private Tracer tracer;
 
 	public String placeOrder(Order order) {
 //		try {
@@ -31,21 +35,29 @@ public class OrderService {
 
 		List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
 
-		// Check isInStock
-		InventoryDto[] inv = webClientBuilder.build().get()
-				.uri("http://inventory-service/api/inventory/isinstock",
-						builder -> builder.queryParam("skuCode", skuCodeList).build())
-				.retrieve().bodyToMono(InventoryDto[].class).block();
+		Span inventoryServiceLookup = tracer.nextSpan().name("inventoryServiceLookup");
+		
+		try(SpanInScope spainInSpoce = tracer.withSpan(inventoryServiceLookup)){
+			// Check isInStock
+			InventoryDto[] inv = webClientBuilder.build().get()
+					.uri("http://inventory-service/api/inventory/isinstock",
+							builder -> builder.queryParam("skuCode", skuCodeList).build())
+					.retrieve().bodyToMono(InventoryDto[].class).block();
 
-		System.out.println("allInStock");
-		boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
-				.allMatch(InventoryDto::getIsInStock);
-		if (allProductsInStock) {
-			orderRepo.save(order);
-			return "Order Placed Successfully";
-		} else {
-			throw new IllegalArgumentException("Order Line Items not in Stock");
+			System.out.println("allInStock");
+			boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
+					.allMatch(InventoryDto::getIsInStock);
+			if (allProductsInStock) {
+				orderRepo.save(order);
+				return "Order Placed Successfully";
+			} else {
+				throw new IllegalArgumentException("Order Line Items not in Stock");
+			}
 		}
+		finally {
+			inventoryServiceLookup.end();
+		}
+		
 //		} catch (Exception e) {
 //			System.out.println("Exception while placing order: " + e.getMessage());
 //		}

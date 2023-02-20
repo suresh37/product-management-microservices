@@ -33,16 +33,18 @@ public class OrderController {
 
 	@PostMapping(value = "")
 	@ResponseStatus(value = HttpStatus.CREATED)
-	@CircuitBreaker(name = "inventory", fallbackMethod = "fallbackMethod")
-	@TimeLimiter(name = "inventory")
-	@Retry(name ="inventory")
-	public CompletableFuture<String> placeOrder(@RequestBody Order order) {
-		return CompletableFuture.supplyAsync(() -> orderService.placeOrder(order));
-		// "Order Placed Successfully"
+//	@CircuitBreaker(name = "inventory", fallbackMethod = "fallbackMethod")
+//	@TimeLimiter(name = "inventory") // CompletableFuture<String>
+//	@Retry(name ="inventory")
+	public String placeOrder(@RequestBody Order order) {
+		// return CompletableFuture.supplyAsync(() -> orderService.placeOrder(order));
+		return orderService.placeOrder(order);
 	}
 
-	public CompletableFuture<String> fallbackMethod(Order order, RuntimeException runtimeException) {
-		return CompletableFuture.supplyAsync(() -> "Something went wrong. Please order after some time!");
+	public String fallbackMethod(Order order, RuntimeException runtimeException) {
+		// return CompletableFuture.supplyAsync(() -> "Something went wrong. Please
+		// order after some time!");
+		return "Something went wrong. Please order after some time!";
 	}
 
 }
