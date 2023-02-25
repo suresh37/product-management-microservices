@@ -1,4 +1,4 @@
-package com.productmanagement.orderservice.cconfig;
+package com.productmanagement.orderservice.config;
 
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
