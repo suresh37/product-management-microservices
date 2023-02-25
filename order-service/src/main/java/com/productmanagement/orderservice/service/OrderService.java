@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
+//@Slf4j
 public class OrderService {
 
 	private final OrderRepository orderRepo;
@@ -40,30 +40,30 @@ public class OrderService {
 
 		List<String> skuCodeList = list.stream().map(OrderLineItem::getSkuCode).toList();
 
-		Span inventoryServiceLookup = tracer.nextSpan().name("inventoryServiceLookup");
-		
-		try(SpanInScope spainInSpoce = tracer.withSpan(inventoryServiceLookup)){
-			// Check isInStock
-			InventoryDto[] inv = webClientBuilder.build().get()
-					.uri("http://inventory-service/api/inventory/isinstock",
-							builder -> builder.queryParam("skuCode", skuCodeList).build())
-					.retrieve().bodyToMono(InventoryDto[].class).block();
+//		Span inventoryServiceLookup = tracer.nextSpan().name("inventoryServiceLookup");
+//		
+//		try(SpanInScope spainInSpoce = tracer.withSpan(inventoryServiceLookup)){
+		// Check isInStock
+		InventoryDto[] inv = webClientBuilder.build().get()
+				.uri("http://inventory-service/api/inventory/isinstock",
+						builder -> builder.queryParam("skuCode", skuCodeList).build())
+				.retrieve().bodyToMono(InventoryDto[].class).block();
 
-			System.out.println("allInStock");
-			boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
-					.allMatch(InventoryDto::getIsInStock);
-			if (allProductsInStock) {
-				orderRepo.save(order);
-				kafkaTemplate.send("notificationTopic",new OrderPlacedEvent(order.getOrderNumber()));
-				return "Order Placed Successfully";
-			} else {
-				throw new IllegalArgumentException("Order Line Items not in Stock");
-			}
+		System.out.println("allInStock");
+		boolean allProductsInStock = Arrays.stream(inv).peek(d -> System.out.println(d.toString()))
+				.allMatch(InventoryDto::getIsInStock);
+		if (allProductsInStock) {
+			orderRepo.save(order);
+			kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
+			return "Order Placed Successfully";
+		} else {
+			throw new IllegalArgumentException("Order Line Items not in Stock");
 		}
-		finally {
-			inventoryServiceLookup.end();
-		}
-		
+//		}
+//		finally {
+//			inventoryServiceLookup.end();
+//		}
+
 //		} catch (Exception e) {
 //			System.out.println("Exception while placing order: " + e.getMessage());
 //		}
