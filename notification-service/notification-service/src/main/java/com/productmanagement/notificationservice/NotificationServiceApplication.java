@@ -13,10 +13,10 @@ public class NotificationServiceApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(NotificationServiceApplication.class, args);
 	}
-	
+
 	@KafkaListener(topics = "notificationTopic")
 	public void handleNotification(OrderPlacedEvent orderPlacedEvent) {
-		System.out.println("OrderPlacedEvent: "+orderPlacedEvent);
+		System.out.println("OrderPlacedEvent: " + orderPlacedEvent);
 		log.info("Received Notification for Order - {} ", orderPlacedEvent.getOrderNumber());
 		// Send out an email notification
 	}
