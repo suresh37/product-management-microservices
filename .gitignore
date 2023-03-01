@@ -30,3 +30,13 @@ hs_err_pid*
 !.vscode/extensions.json
 # Ignore all local history of files
 **/.history
+
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
