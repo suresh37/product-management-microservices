@@ -1,6 +1,61 @@
 ---
 version: '3'
+
 services:
+  #### External Services
+  #MySQL Docker config
+  mysql-db:
+    container_name: mysql-db
+    image: mysql
+    environment:
+      MYSQL_DATABASE: dev
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    volumes:
+      - ./mysql-db:/var/lib/mysql
+    command: -p 3306
+    restart: unless-stopped
+
+  ## Mongo Docker Config
+  # mongo-db:
+  #   container_name: mongo-db
+  #   image: mongo
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: rootpassword
+  #   ports:
+  #     - "27017:27017"
+  #   expose:
+  #     - "27017"
+  #   volumes:
+  #     - ./mongodb-data:/data/db
+  #   restart: unless-stopped
+
+  ## keycloak Docker config with mysql
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:18.0.0
+    command: [ "start-dev", "--import-realm" ]
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: mysql
+      DB_DATABASE: dev
+      DB_USER: admin
+      DB_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./realms:/opt/keycloak/data/import/
+    depends_on:
+      - mysql-db
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
     container_name: zookeeper
@@ -25,3 +80,18 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  ## Zipkin
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+
+#### Configure the services developed by us
+## Eureka Server
+## API Gateway
+## Product Service
+## Order Service
+## Inventory Service
+## Notification Service
