@@ -40,3 +40,7 @@ hs_err_pid*
 .settings
 .springBeans
 .sts4-cache
+
+### Docker files ###
+mysql-pms/*
+mysql_keycloak_data/*
