@@ -4,39 +4,54 @@ version: '3'
 services:
   #### External Services
   #MySQL Docker config
-  mysql-db:
-    container_name: mysql-db
+  mysql-pms:
+    container_name: mysql-pms
     image: mysql
     environment:
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: dev
-      MYSQL_ROOT_PASSWORD: admin
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin
-    ports:
-      - "3306:3306"
     expose:
       - "3306"
+    ports:
+      - "3306:3306"
     volumes:
-      - ./mysql-db:/var/lib/mysql
-    command: -p 3306
-    restart: unless-stopped
+      - ./mysql-pms:/var/lib/mysql
+    #command: -p 3306
+    #restart: always
 
-  ## Mongo Docker Config
-  # mongo-db:
-  #   container_name: mongo-db
-  #   image: mongo
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: root
-  #     MONGO_INITDB_ROOT_PASSWORD: rootpassword
-  #   ports:
-  #     - "27017:27017"
-  #   expose:
-  #     - "27017"
-  #   volumes:
-  #     - ./mongodb-data:/data/db
-  #   restart: unless-stopped
+    ## Mongo Docker Config
+    # mongo-db:
+    #   container_name: mongo-db
+    #   image: mongo
+    #   environment:
+    #     MONGO_INITDB_ROOT_USERNAME: root
+    #     MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    #   ports:
+    #     - "27017:27017"
+    #   expose:
+    #     - "27017"
+    #   volumes:
+    #     - ./mongodb-data:/data/db
+    #   restart: unless-stopped
 
-  ## keycloak Docker config with mysql
+    # keycloak Docker config with mysql
+  keycloak-mysql:
+    container_name: keycloak-mysql
+    image: mysql:5.7
+    volumes:
+      - ./mysql_keycloak_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: password
+    expose:
+      - "3307"
+    ports:
+      - "3307:3307"
+
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:18.0.0
@@ -44,17 +59,17 @@ services:
     environment:
       DB_VENDOR: MYSQL
       DB_ADDR: mysql
-      DB_DATABASE: dev
-      DB_USER: admin
-      DB_PASSWORD: admin
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: password
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
     volumes:
       - ./realms:/opt/keycloak/data/import/
-    depends_on:
-      - mysql-db
+    # depends_on:
+    #   - keycloak-mysql
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
@@ -88,10 +103,88 @@ services:
     ports:
       - "9411:9411"
 
-#### Configure the services developed by us
-## Eureka Server
-## API Gateway
-## Product Service
-## Order Service
-## Inventory Service
-## Notification Service
+  #### Configure the services developed by us
+  ## Eureka Server
+  discovery-server:
+    container_name: discovery-server
+    image: suresh37/discovery-server:latest
+    # pull_policy: always
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - zipkin
+
+  ## API Gateway
+  api-gateway:
+    container_name: api-gateway
+    image: suresh37/api-gateway:latest
+    # pull_policy: always
+    ports:
+      - "8181:8080"
+    expose:
+      - "8181"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
+    depends_on:
+      - zipkin
+      - discovery-server
+      - keycloak
+
+  ## Product Service
+  product-service:
+    container_name: product-service
+    image: suresh37/product-service:latest
+    # pull_policy: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      # - mongo
+      - discovery-server
+      - api-gateway
+
+  ## Order Service
+  order-service:
+    container_name: order-service
+    image: suresh37/order-service:latest
+    # pull_policy: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      ## Override env var from app properties
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-pms:3306/dev
+    depends_on:
+      - mysql-pms
+      - broker
+      - discovery-server
+      - api-gateway
+      - zipkin
+
+  ## Inventory Service
+  inventory-service:
+    container_name: inventory-service
+    image: suresh37/inventory-service:latest
+    # pull_policy: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      ## Override env var from app properties
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-pms:3306/dev
+    depends_on:
+      - mysql-pms
+      - broker
+      - discovery-server
+      - api-gateway
+      - zipkin
+  ## Notification Service
+  notification-service:
+    container_name: notification-service
+    image: suresh37/notification-service:latest
+    # pull_policy: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - broker
+      - discovery-server
+      - api-gateway
+      - zipkin
