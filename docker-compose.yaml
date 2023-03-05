@@ -122,12 +122,16 @@ services:
     image: suresh37/api-gateway:latest
     # pull_policy: always
     ports:
-      - "8181:8080"
+      - "8765:8765"
     expose:
-      - "8181"
+      - "8765"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=TRACE
+      # not picking from application-docker.properties. so, overrided here
+      - eureka.client.serviceUrl.defaultZone=http://discovery-server:8761/eureka/
+      - spring.zipkin.base-url=http://zipkin:9411
+      - spring.security.oauth2.resourceserver.jwt.issuer-uri=http://keycloak:8080/realms/spring-boot-microservices-realm
     depends_on:
       - zipkin
       - discovery-server
@@ -140,6 +144,7 @@ services:
     # pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - eureka.client.serviceUrl.defaultZone=http://discovery-server:8761/eureka/
     depends_on:
       # - mongo
       - discovery-server
@@ -154,6 +159,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       ## Override env var from app properties
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-pms:3306/dev
+      - eureka.client.serviceUrl.defaultZone=http://discovery-server:8761/eureka/
     depends_on:
       - mysql-pms
       - broker
@@ -170,6 +176,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       ## Override env var from app properties
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-pms:3306/dev
+      - eureka.client.serviceUrl.defaultZone=http://discovery-server:8761/eureka/
     depends_on:
       - mysql-pms
       - broker
@@ -183,6 +190,7 @@ services:
     # pull_policy: always
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - eureka.client.serviceUrl.defaultZone=http://discovery-server:8761/eureka/
     depends_on:
       - broker
       - discovery-server
